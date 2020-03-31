@@ -10,47 +10,28 @@ import (
 
 func main() {
 	var phoneCounter, mailCounter int
-	// GET TEACHER INFO
-	respTeacher, err := http.Get("http://www.csie.kuas.edu.tw/teacher.php")
-	if err != nil {
-		log.Fatal(err)
+	var url = [3]string{
+		"http://www.csie.kuas.edu.tw/teacher.php",
+		"http://www.csie.ncku.edu.tw/ncku_csie/depmember/teacher",
+		"https://www.nhi.gov.tw/Content_List.aspx?n=BF3024DEFFC02A33&topn=FB01D469347C76A7"}
+	// ---
+	mailRule := regexp.MustCompile("[a-zA-Z0-9,.]*@[a-z,.]*")
+	phoneRule, _ := regexp.Compile("\\W[0]{1,2}[0-9,-,)]{1,}[-,0-9]{3,5}[-,0-9]{3,5}")
+	for idx := 0; idx < len(url); idx++ {
+		resp, err := http.Get(url[idx])
+		if err != nil {
+			log.Fatal(err)
+		}
+		unAnalysisBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		strBody := string(unAnalysisBody)
+		fmt.Println(mailRule.FindAllString(strBody, -1), "\n", len(mailRule.FindAllString(strBody, -1)))
+		fmt.Println(phoneRule.FindAllString(strBody, -1), "\n", len(phoneRule.FindAllString(strBody, -1)))
+		mailCounter += len(mailRule.FindAllString(strBody, -1))
+		phoneCounter += len(phoneRule.FindAllString(strBody, -1))
 	}
-	// GET INDEX INFO
-	respIndex, err := http.Get("http://www.csie.kuas.edu.tw/index.php")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// ANALYSIS BODY TAG
-	unanalysisTeacherBody, err := ioutil.ReadAll(respTeacher.Body)
-	unanalysisIndexBody, err := ioutil.ReadAll(respIndex.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	strTeacher := string(unanalysisTeacherBody)
-	strIndex := string(unanalysisIndexBody)
-
-	findMail := regexp.MustCompile("[a-z].*@[a-z].*\\.tw")
-	mailCounter += len(findMail.FindAllString(strTeacher, -1))
-	fmt.Println(findMail.FindAllString(strTeacher, -1))
-	mailCounter += len(findMail.FindAllString(strIndex, -1))
-	fmt.Println(findMail.FindAllString(strIndex, -1))
-
-	findPhone, _ := regexp.Compile("(15\\d{3})") // [^a-zA-Z]
-	phoneCounter += len(findPhone.FindAllString(strTeacher, -1))
-	fmt.Println(findPhone.FindAllString(strTeacher, -1))
-	phoneCounter += len(findPhone.FindAllString(strIndex, -1))
-	fmt.Println(findPhone.FindAllString(strIndex, -1))
-
-	findPhone2, _ := regexp.Compile("\\(0[7,9]\\)[0-9]*.[0-9]*")
-	phoneCounter += len(findPhone2.FindAllString(strTeacher, -1))
-	fmt.Println(findPhone2.FindAllString(strTeacher, -1))
-	phoneCounter += len(findPhone2.FindAllString(strIndex, -1))
-	fmt.Println(findPhone2.FindAllString(strIndex, -1))
 
 	fmt.Printf("Total mail number: %d\nTotal phone number: %d", mailCounter, phoneCounter)
-
-	if err != nil {
-		log.Fatal(err)
-	}
 }
