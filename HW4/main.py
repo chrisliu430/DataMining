@@ -4,97 +4,92 @@ import random
 
 class DBSCAN():
     def __init__(self, fileName):
-        self.fileName = fileName
         self.img = Image.open(fileName)
         self.imgArr = np.array(self.img)
-        self.height, self.width = np.shape(self.imgArr)
-        self.cimgArr = np.full((self.height, self.width, 3), 0)
-        self.valImg = np.full((self.height, self.width), 0)
-        self.valuesArr = [0, 0]
-        self.pointVal = 2
+        self.width, self.height = self.img.size
+        self.valImg = np.full((self.height, self.width), -1)
+        self.cImgArr = np.full((self.height, self.width, 3), -1)
+        self.valuesArr = [0]
+        self.pointVal = 1
 
-    def inverting(self):
+    def Start(self):
+        self.Inverting()
+        self.RemovePoints()
+        self.Clustering()
+        self.ToRGBArray()
+
+    def CreateNewImage(self, newName):
+        cimg = Image.fromarray(self.cImgArr.astype('uint8')).convert('RGB')
+        cimg.save(newName)
+    
+    # Hiding Layer ---
+    def Inverting(self):
         for y in range (self.height):
             for x in range (self.width):
                 if (self.imgArr[y, x]):
+                    self.imgArr[y, x] = False
+                else:
+                    self.imgArr[y, x] = True
+
+    def RemovePoints(self):
+        for y in range (self.height):
+            for x in range (self.width):
+                if (self.imgArr[y, x] and not(self.ScanNearPoints(y, x, 3))):
                     self.imgArr[y, x] = 0
-                else:
-                    self.imgArr[y, x] = 1
-    
-    def clustering(self):
+
+    def Clustering(self):
         for y in range (self.height):
             for x in range (self.width):
-                if (self.imgArr[y, x]):
-                    pointIsExist = self.discretecheck(y, x, 3)
-                    if (not(pointIsExist)):
-                        self.imgArr[y, x] = 0
-        for y in range (self.height):
-            for x in range (self.width):
-                if (self.imgArr[y, x]):
-                    value = self.scanpointsvalue(y, x, 10)
-                    if (value == 0):
-                        self.valImg[y, x] = self.pointVal
-                        self.pointVal += 1
-                        self.valuesArr.append(1)
-                    else:
-                        self.valImg[y, x] = value
-                        self.valuesArr[value] += 1
-                else:
-                    self.valImg[y, x] = -1
-      
-    def toRGBarray(self):
+                if (not(self.imgArr[y, x])):
+                    self.valImg[y, x] = 0
+                elif (self.imgArr[y, x]):
+                    self.valImg[y, x] = self.pointVal
+                    self.valuesArr.append(1)
+                    self.pointVal += 1
+                    self.RecursionNearPoints(y + 1, x, 3, self.pointVal - 1)
+
+    def RecursionNearPoints(self, centerY, cencterX, redis, value):
+        for x in range (cencterX - redis, cencterX + redis + 1):
+            if (self.imgArr[centerY, x]):
+                self.valImg[centerY, x] = value
+                self.valuesArr[value] += 1
+                self.RecursionNearPoints(centerY + 1, x, redis, value)
+                return
+
+    def ScanNearPoints(self, centerY, centerX, redis):
+        exist = False
+        for y in range (centerY - redis, centerY + redis + 1):
+            for x in range (centerX - redis, centerX + redis + 1):
+                if (y < 0 or y >= self.height or x < 0 or x >= self.width):
+                    break
+                if (self.imgArr[y, x] and y != centerY and x != centerX):
+                    exist = True
+                    break
+            if (exist):
+                break
+        return exist
+
+    def ToRGBArray(self):
+        print(self.valuesArr[1])
         print(self.pointVal)
-        for val in range (2, len(self.valuesArr)):
-            r = random.randint(1, 255)
-            g = random.randint(1, 255)
-            b = random.randint(1, 255)
-            if (self.valuesArr[val] < 10):
-                r = g = b = -1
-            for y in range (self.height):
-                for x in range (self.width):
-                    if (self.valImg[y, x] == -1):
-                        self.cimgArr[y, x, 0] = 255
-                        self.cimgArr[y, x, 1] = 255
-                        self.cimgArr[y, x, 2] = 255
-                    if (self.valImg[y, x] == val):
-                        self.cimgArr[y, x, 0] = r
-                        self.cimgArr[y, x, 1] = g
-                        self.cimgArr[y, x, 2] = b
 
-    def storageimage(self):
-        cimg = Image.fromarray(self.cimgArr.astype('uint8')).convert('RGB')
-        cimg.save("convert.bmp")
-
-    # --- SCAN
-    def discretecheck(self, startY, startX, redis):
-        judge = False
-        for y in range (startY - redis, startY + redis + 1):
-            for x in range (startX - redis, startX + redis + 1):
-                if (y < 0 or x < 0 or x >= self.width or y >= self.height):
-                    break
-                if (self.imgArr[y, x] != 0 and x != startX and y != startY):
-                    judge = True
-            if (judge):
-                break
-        return judge
-
-    def scanpointsvalue(self, startY, startX, redis):
-        value = 0
-        for y in range (startY - redis, startY + redis + 1):
-            for x in range (startX - redis, startX + redis + 1):
-                if (x < 0 or y < 0 or x >= self.width or y >= self.height):
-                    break
-                if (self.valImg[y, x] != -1):
-                    value = self.valImg[y, x]
-                    break
-            if (value != 0):
-                break
-        return value
+    # For Test
+    def GaryImage(self):
+        for y in range (self.height):
+            for x in range (self.width):
+                if (self.imgArr[y, x] == 0):
+                    self.cImgArr[y, x, 0] = 255
+                    self.cImgArr[y, x, 1] = 255
+                    self.cImgArr[y, x, 2] = 255
+                if (self.imgArr[y, x] == 1):
+                    self.cImgArr[y, x, 0] = 128
+                    self.cImgArr[y, x, 1] = 128
+                    self.cImgArr[y, x, 2] = 128
     # ---
-    
+
+    # --- --- ---
+
 if __name__ == "__main__":
     ds = DBSCAN("./test.bmp")
-    ds.inverting()
-    ds.clustering()
-    ds.toRGBarray()
-    ds.storageimage()
+    ds.Start()
+    ds.CreateNewImage("./convert.bmp")
