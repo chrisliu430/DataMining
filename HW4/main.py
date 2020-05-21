@@ -36,16 +36,29 @@ class DBSCAN():
     def RemovePoints(self):
         for y in range (self.height):
             for x in range (self.width):
-                if (self.imgArr[y, x].any() and not(self.ScanNearPoints(y, x, 3))):
-                    self.imgArr[y, x] = 0
+                if (self.imgArr[y, x].any() and not(self.ScanNearPoints(y, x, 2))):
+                    self.ClearNearPoints(y, x, 2)
 
-    def ScanNearPoints(self, centerY, centerX, redis):
-        exist = False
+    def ClearNearPoints(self, centerY, centerX, redis):
         for y in range (centerY - redis, centerY + redis + 1):
             for x in range (centerX - redis, centerX + redis + 1):
                 if (y < 0 or y >= self.height or x < 0 or x >= self.width):
                     break
-                if (self.imgArr[y, x].any() and y != centerY and x != centerX):
+                else:
+                    self.imgArr[y, x] = 0
+
+    def ScanNearPoints(self, centerY, centerX, redis):
+        exist = False
+        counter = 0
+        for y in range (centerY - redis, centerY + redis + 1):
+            for x in range (centerX - redis, centerX + redis + 1):
+                if (y < 0 or y >= self.height or x < 0 or x >= self.width):
+                    break
+                elif (y == centerY and x == centerX):
+                    continue
+                elif (self.imgArr[y, x].any()):
+                    counter += 1
+                if (counter > 8):
                     exist = True
                     break
             if (exist):
@@ -59,7 +72,7 @@ class DBSCAN():
             r = random.randint(1,255)
             g = random.randint(1,255)
             b = random.randint(1,255)
-            if (self.valuesArr[sVal] < 10):
+            if (self.valuesArr[sVal] < 50):
                 judge = True
             for y in range (self.height):
                 for x in range (self.width):
@@ -71,7 +84,7 @@ class DBSCAN():
                         self.cImgArr[y, x, 0] = r
                         self.cImgArr[y, x, 1] = g
                         self.cImgArr[y, x, 2] = b
-    # ---
+    # Finish End
 
     def Clustering(self):
         for y in range (self.height):
@@ -79,26 +92,30 @@ class DBSCAN():
                 if (not(self.imgArr[y, x].any())):
                     self.valImg[y, x] = 0
                 elif (self.imgArr[y, x].any() and self.valImg[y, x] == -1):
-                    rVal = self.GetNearPointsValue(y, x, 3)
+                    rVal = self.GetNearPointsValue(y, x, 5)
                     if (not(rVal)):
                         rVal = self.pointVal
                         self.valImg[y, x] = rVal
                         self.valuesArr.append(1)
-                        self.RecursionCircle(y + 1, x, 3, rVal)
+                        self.pointVal += 1
                     else:
                         self.valImg[y, x] = rVal
                         self.valuesArr[rVal] += 1
-                    # self.RecursionCircle(y + 1, x, 3, rVal)
+                    self.RecursionCircle(y + 1, x, 3, rVal)
     
     def RecursionCircle(self, centerY, centerX, redis, value):
-        for y in range (centerY, centerY + redis):
-            for x in range (centerX - redis, centerX + redis + 1):
-                if (y < 0 or y >= self.height or x < 0 or x >= self.width):
-                    break
-                elif (self.imgArr[y, x].any() and self.valImg[y, x] == -1):
-                    self.valImg[y, x] = value
-                    self.valuesArr[value] += 1
-                    self.RecursionSearchLine(y, x, 5, value)
+        stepY = False
+        for x in range (centerX - redis, centerX + redis + 1):
+            if (centerY < 0 or centerY >= self.height or x < 0 or x >= self.width):
+                break
+            elif (self.imgArr[centerY, x].any() and self.valImg[centerY, x] == -1):
+                stepY = True
+                self.valImg[centerY, x] = value
+                self.valuesArr[value] += 1
+                self.RecursionSearchLine(centerY, x, redis, value)
+            if (stepY):
+                stepY = False
+                self.RecursionCircle(centerY + 1, x, redis, value)
 
     def RecursionSearchLine(self, centerY, centerX, redis, value):
         for x in range (centerX - redis, centerX + redis + 1):
@@ -111,7 +128,7 @@ class DBSCAN():
                 
     def GetNearPointsValue(self, centerY, centerX, redis):
         rVal = 0
-        for y in range (centerY - redis, centerY + redis + 1):
+        for y in range (centerY, centerY - redis, -1):
             for x in range (centerX - redis, centerX + redis + 1):
                 if (y < 0 or y >= self.height or x < 0 or x >= self.width):
                     break
@@ -120,6 +137,16 @@ class DBSCAN():
                     break
             if (rVal):
                 break
+        if (not(rVal)):
+            for y in range (centerY, centerY + redis + 1):
+                for x in range (centerX - redis, centerX + redis + 1):
+                    if (y < 0 or y >= self.height or x < 0 or x >= self.width):
+                        break
+                    elif (self.valImg[y, x] != 0 and self.valImg[y, x] != -1):
+                        rVal = self.valImg[y, x]
+                        break
+                if (rVal):
+                    break
         return rVal
 
     # --- --- ---
