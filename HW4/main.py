@@ -19,9 +19,8 @@ class DBSCAN():
 
     def Start(self):
         self.Scan()
-        self.VerifyPass()
-        self.TransToRGB()
         print(self.value)
+        self.TransToRGB()
 
     def CreateNewImage(self, fileName):
         cimg = Image.fromarray(self.newImgArr.astype('uint8')).convert('RGB')
@@ -34,20 +33,22 @@ class DBSCAN():
     def Scan(self):
         for y in range (self.height):
             for x in range (self.width):
-                checkValue = self.ScanNearValue(y, x)
+                rVal = self.ScanNearValue(y, x)
                 if (self.imgArr[y, x]):
                     self.valImgArr[y, x] = 0
-                elif (not(self.imgArr[y, x]) and self.valImgArr[y, x] == -1 and checkValue == -1):
+                elif (not(self.imgArr[y, x]) and not(self.PassCircle(y, x))):
+                    self.valImgArr[y, x] = 0
+                elif (not(self.imgArr[y, x]) and self.PassCircle(y, x) and rVal == -1):
                     self.valImgArr[y, x] = self.value
                     self.valArr.append(1)
                     self.RecursionPassLine(y, x + 1, self.value)
                     self.RecursionPassPoint(y + 1, x, self.value)
                     self.value += 1
-                elif (not(self.imgArr[y, x]) and self.valImgArr[y, x] == -1 and checkValue != -1):
-                    self.valImgArr[y, x] = checkValue
-                    self.valArr[checkValue] += 1
-                    self.RecursionPassLine(y, x + 1, checkValue)
-                    self.RecursionPassPoint(y + 1, x, checkValue)
+                elif (not(self.imgArr[y, x]) and self.PassCircle(y, x) and rVal != -1):
+                    self.valImgArr[y, x] = rVal
+                    self.valArr[rVal] += 1
+                    self.RecursionPassLine(y, x + 1, rVal)
+                    self.RecursionPassPoint(y + 1, x, rVal)
     
     def RecursionPassPoint(self, y, x, val):
         if (not(self.imgArr[y, x])):
@@ -66,30 +67,34 @@ class DBSCAN():
         else:
             return
 
+    def PassCircle(self, centerY, centerX):
+        counter = 0
+        status = False
+        for y in range (centerY - self.radis, centerY + self.radis + 1):
+            for x in range (centerX - self.radis, centerX + self.radis + 1):
+                if (y < 0 or y >= self.height or x < 0 or x >= self.width):
+                    continue
+                elif (not(self.imgArr[y, x]) and self.CalculateRadis(centerY, centerX, y, x) <= self.radis):
+                    counter += 1
+                if (counter >= self.less):
+                    status = True
+                    break
+            if (status):
+                break
+        return status
+
     def ScanNearValue(self, centerY, centerX):
         rVal = -1
         for y in range (centerY - self.radis, centerY + self.radis + 1):
             for x in range (centerX - self.radis, centerX + self.radis + 1):
-                if (y < 0 or y >= self.height or x < 0 or x >= self.width or self.CalculateRadis(centerY, centerX, y, x) > self.radis):
+                if (y < 0 or y >= self.height or x < 0 or x >= self.width or (y == centerY and x == centerX)):
                     continue
-                elif (self.CalculateRadis(centerY, centerX, y, x) <= self.radis and self.valImgArr[y, x] != -1 and self.valImgArr[y, x] != 0):
+                elif (self.valImgArr[y, x] != -1 and not(self.imgArr[y, x]) and self.CalculateRadis(centerY, centerX, y, x) <= self.radis):
                     rVal = self.valImgArr[y, x]
                     break
             if (rVal != -1):
                 break
         return rVal
-
-    def VerifyPass(self):
-        for clearVal in range (1, self.value):
-            if (self.valArr[clearVal] < self.less):
-                self.ClearNoPassPoint(clearVal)
-                self.valArr[clearVal] = 0
-
-    def ClearNoPassPoint(self, cVal):
-        for y in range (self.height):
-            for x in range (self.width):
-                if (self.valImgArr[y, x] == cVal):
-                    self.valImgArr[y, x] = 0
     
     def TransToRGB(self):
         for y in range (self.height):
@@ -114,3 +119,6 @@ if __name__ == "__main__":
     ds = DBSCAN("./test.bmp", 1, 5)
     ds.Start()
     ds.CreateNewImage("./convert_1_5.bmp")
+    ds = DBSCAN("./test.bmp", 1, 7)
+    ds.Start()
+    ds.CreateNewImage("./convert_1_7.bmp")
