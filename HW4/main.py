@@ -41,14 +41,10 @@ class DBSCAN():
                 elif (not(self.imgArr[y, x]).any() and self.PassCircle(y, x) and rVal == -1):
                     self.valImgArr[y, x] = self.value
                     self.valArr.append(1)
-                    self.RecursionPassLine(y, x + 1, self.value)
-                    self.RecursionPassPoint(y + 1, x, self.value)
                     self.value += 1
                 elif (not(self.imgArr[y, x]).any() and self.PassCircle(y, x) and rVal != -1):
                     self.valImgArr[y, x] = rVal
                     self.valArr[rVal] += 1
-                    self.RecursionPassLine(y, x + 1, rVal)
-                    self.RecursionPassPoint(y + 1, x, rVal)
         for y in range (self.height):
             for x in range (self.width):
                 rVal = self.ScanNearValue(y, x)
@@ -57,27 +53,6 @@ class DBSCAN():
                 elif (not(self.imgArr[y, x]).any() and self.valImgArr[y, x] != rVal):
                     self.valImgArr[y, x] = rVal
     
-    def RecursionPassPoint(self, y, x, val):
-        if (y < 0 or y >= self.height or x < 0 or x >= self.width):
-            return
-        elif (not(self.imgArr[y, x]).any()):
-            self.valImgArr[y, x] = val
-            self.valArr[val] += 1
-            self.RecursionPassPoint(y, x - 1, val)
-        else:
-            return
-    
-    def RecursionPassLine(self, y, x, val):
-        if (y < 0 or y >= self.height or x < 0 or x >= self.width):
-            return
-        elif (not(self.imgArr[y, x]).any()):
-            self.valImgArr[y, x] = val
-            self.valArr[val] += 1
-            self.RecursionPassPoint(y, x, val)
-            self.RecursionPassLine(y - 1, x, val)
-        else:
-            return
-
     def PassCircle(self, centerY, centerX):
         counter = 0
         status = False
@@ -133,6 +108,12 @@ if __name__ == "__main__":
     ds = DBSCAN("./test.bmp", 1, 7)
     ds.Start()
     ds.CreateNewImage("./convert_1_7.bmp")
+    ds = DBSCAN("./test.bmp", 3, 5)
+    ds.Start()
+    ds.CreateNewImage("./convert_3_5.bmp")
+    ds = DBSCAN("./test.bmp", 5, 35)
+    ds.Start()
+    ds.CreateNewImage("./convert_5_35.bmp")
     # ds = DBSCAN("./test2.bmp", 1, 5)
     # ds.Start()
     # ds.CreateNewImage("./convert2_1_5.bmp")
